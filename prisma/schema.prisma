@@ -1,0 +1,257 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  creator     Creator?
+  fanOf       CreatorFan[]
+  purchases   Purchase[]
+  messages    Message[]
+  analytics   Analytics[]
+
+  @@map("users")
+}
+
+model Creator {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  handle      String   @unique
+  displayName String
+  bio         String?
+  image       String?
+  headerImage String?
+  isVerified  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  
+  // Stripe Connect
+  stripeAccountId String?
+  stripeOnboarded Boolean @default(false)
+  
+  // Earnings & Stats
+  totalEarnings  Decimal @default(0)
+  totalFans      Int     @default(0)
+  totalMessages  Int     @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fans          CreatorFan[]
+  content       Content[]
+  conversations Conversation[]
+  purchases     Purchase[]
+  aiConfig      AIConfig?
+  representatives Representative[]
+
+  @@map("creators")
+}
+
+model CreatorFan {
+  id        String   @id @default(cuid())
+  creatorId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([creatorId, userId])
+  @@map("creator_fans")
+}
+
+model Content {
+  id          String      @id @default(cuid())
+  creatorId   String
+  title       String
+  description String?
+  type        ContentType
+  price       Decimal     // Price to unlock
+  isLocked    Boolean     @default(true)
+  mediaUrl    String?
+  thumbnail   String?
+  unlockCount Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  creator   Creator    @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  purchases Purchase[]
+  messages  Message[]
+
+  @@map("content")
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  creatorId String
+  fanId     String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  creator  Creator   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  fan      User      @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([creatorId, fanId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String
+  senderId       String
+  contentId      String?
+  text           String?
+  mediaUrl       String?
+  type           MessageType @default(TEXT)
+  isFromCreator  Boolean
+  isFromAI       Boolean     @default(false)
+  isFromRep      Boolean     @default(false)
+  repId          String?
+  createdAt      DateTime    @default(now())
+
+  // Relations
+  conversation Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User             @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content      Content?         @relation(fields: [contentId], references: [id])
+  representative Representative? @relation(fields: [repId], references: [id])
+
+  @@map("messages")
+}
+
+model Purchase {
+  id                String        @id @default(cuid())
+  userId            String
+  creatorId         String
+  contentId         String?
+  amount            Decimal
+  platformFee       Decimal
+  creatorEarnings   Decimal
+  stripePaymentId   String        @unique
+  status            PurchaseStatus
+  type              PurchaseType
+  createdAt         DateTime      @default(now())
+  processedAt       DateTime?
+
+  // Relations
+  user    User     @relation(fields: [userId], references: [id])
+  creator Creator  @relation(fields: [creatorId], references: [id])
+  content Content? @relation(fields: [contentId], references: [id])
+
+  @@map("purchases")
+}
+
+model AIConfig {
+  id              String   @id @default(cuid())
+  creatorId       String   @unique
+  personality     String   // JSON string of personality traits
+  tone            String   @default("conversational")
+  topics          String   // JSON array of topics
+  responseLength  String   @default("medium")
+  creativity      Float    @default(0.7)
+  isEnabled       Boolean  @default(false)
+  systemPrompt    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@map("ai_configs")
+}
+
+model Representative {
+  id          String   @id @default(cuid())
+  creatorId   String
+  userId      String
+  name        String
+  email       String
+  isActive    Boolean  @default(true)
+  permissions String   // JSON string of permissions
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  creator  Creator   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([creatorId, userId])
+  @@map("representatives")
+}
+
+model Analytics {
+  id         String        @id @default(cuid())
+  userId     String?
+  creatorId  String?
+  event      AnalyticsEvent
+  properties String        // JSON string
+  createdAt  DateTime      @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("analytics")
+}
+
+// Enums
+enum ContentType {
+  IMAGE
+  VIDEO
+  AUDIO
+  TEXT
+  CUSTOM
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  LOCKED_CONTENT
+  TIP
+  SYSTEM
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PurchaseType {
+  CONTENT_UNLOCK
+  TIP
+  SUBSCRIPTION
+}
+
+enum AnalyticsEvent {
+  VIEW_CREATOR
+  CHAT_START
+  UNLOCK_START
+  UNLOCK_SUCCESS
+  TIP_SENT
+  SUBSCRIPTION_START
+}
