@@ -1,13 +1,22 @@
 import Stripe from 'stripe'
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set')
+// Gracefully handle missing Stripe configuration
+let stripe: Stripe | null = null
+
+try {
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16',
+      typescript: true,
+    })
+  } else {
+    console.warn('STRIPE_SECRET_KEY not set. Stripe functionality will be disabled.')
+  }
+} catch (error) {
+  console.warn('Failed to initialize Stripe:', error)
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16',
-  typescript: true,
-})
+export { stripe }
 
 // Platform fee percentage (20%)
 export const PLATFORM_FEE_PERCENTAGE = 0.20
@@ -34,6 +43,10 @@ export async function createCheckoutSession({
   amount: number
   metadata?: Record<string, string>
 }) {
+  if (!stripe) {
+    throw new Error('Stripe not configured')
+  }
+
   const fees = calculateFees(amount)
   
   const session = await stripe.checkout.sessions.create({
