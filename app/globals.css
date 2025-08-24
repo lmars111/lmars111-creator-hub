@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS for CreatorChat Hub */
+@layer base {
+  html {
+    font-family: system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .chat-bubble {
+    @apply max-w-xs lg:max-w-md px-4 py-2 rounded-2xl;
+  }
+  
+  .chat-bubble-user {
+    @apply bg-blue-500 text-white ml-auto rounded-br-md;
+  }
+  
+  .chat-bubble-creator {
+    @apply bg-gray-100 text-gray-900 mr-auto rounded-bl-md;
+  }
+  
+  .locked-content {
+    @apply relative overflow-hidden rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 p-4 text-white;
+  }
+  
+  .unlock-button {
+    @apply bg-white text-purple-600 font-semibold py-2 px-4 rounded-full hover:bg-gray-100 transition-colors;
+  }
+  
+  .creator-card {
+    @apply bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow;
+  }
+  
+  .admin-card {
+    @apply bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent;
+  }
+  
+  .glass {
+    @apply bg-white/80 backdrop-blur-sm border border-white/20;
+  }
+}
