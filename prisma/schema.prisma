@@ -16,6 +16,8 @@ model User {
   name          String?
   image         String?
   emailVerified DateTime?
+  referralCode  String?   // Their personal referral code
+  referredBy    String?   // Who referred them
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -25,6 +27,10 @@ model User {
   purchases   Purchase[]
   messages    Message[]
   analytics   Analytics[]
+  ownedReferralCodes ReferralCode[]
+  commissions Commission[]
+  referrals   ReferralHierarchy[] @relation("UserReferrals")
+  referrers   ReferralHierarchy[] @relation("ReferrerHierarchy")
 
   @@map("users")
 }
@@ -48,6 +54,7 @@ model Creator {
   totalEarnings  Decimal @default(0)
   totalFans      Int     @default(0)
   totalMessages  Int     @default(0)
+  totalCommissions Decimal @default(0) // Referral commissions earned
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -56,10 +63,12 @@ model Creator {
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   fans          CreatorFan[]
   content       Content[]
+  posts         Post[]
   conversations Conversation[]
   purchases     Purchase[]
   aiConfig      AIConfig?
   representatives Representative[]
+  referralCodes ReferralCode[]
 
   @@map("creators")
 }
@@ -145,9 +154,11 @@ model Purchase {
   userId            String
   creatorId         String
   contentId         String?
+  postId            String?       // For post unlocks
   amount            Decimal
   platformFee       Decimal
   creatorEarnings   Decimal
+  referralCommissions Decimal     @default(0) // Total referral commissions
   stripePaymentId   String        @unique
   status            PurchaseStatus
   type              PurchaseType
@@ -158,6 +169,8 @@ model Purchase {
   user    User     @relation(fields: [userId], references: [id])
   creator Creator  @relation(fields: [creatorId], references: [id])
   content Content? @relation(fields: [contentId], references: [id])
+  post    Post?    @relation(fields: [postId], references: [id])
+  commission Commission?
 
   @@map("purchases")
 }
@@ -215,6 +228,84 @@ model Analytics {
   @@map("analytics")
 }
 
+model Post {
+  id          String      @id @default(cuid())
+  creatorId   String
+  title       String
+  content     String?
+  mediaUrl    String?
+  thumbnailUrl String?
+  blurredUrl  String?    // Blurred version for preview
+  price       Decimal    // Price to unlock
+  isLocked    Boolean    @default(true)
+  viewCount   Int        @default(0)
+  unlockCount Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  creator   Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  purchases Purchase[]
+
+  @@map("posts")
+}
+
+model ReferralCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  creatorId   String?  // Creator who owns this code
+  userId      String?  // User who can use this code
+  maxUses     Int?     // Maximum number of uses (null = unlimited)
+  currentUses Int      @default(0)
+  isActive    Boolean  @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  creator     Creator? @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  commissions Commission[]
+
+  @@map("referral_codes")
+}
+
+model Commission {
+  id             String     @id @default(cuid())
+  referralCodeId String
+  purchaseId     String     @unique
+  referrerId     String     // User who made the referral
+  level          Int        // 1, 2, or 3 (L1, L2, L3)
+  percentage     Decimal    // Commission percentage (5%, 2%, 1%)
+  amount         Decimal    // Commission amount in dollars
+  status         CommissionStatus @default(PENDING)
+  paidAt         DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // Relations
+  referralCode ReferralCode @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+  purchase     Purchase     @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  referrer     User         @relation(fields: [referrerId], references: [id], onDelete: Cascade)
+
+  @@map("commissions")
+}
+
+model ReferralHierarchy {
+  id           String   @id @default(cuid())
+  userId       String   // Child user
+  referrerId   String   // Parent referrer
+  level        Int      // Level in hierarchy (1, 2, 3)
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user     User @relation("UserReferrals", fields: [userId], references: [id], onDelete: Cascade)
+  referrer User @relation("ReferrerHierarchy", fields: [referrerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, referrerId, level])
+  @@map("referral_hierarchy")
+}
+
 // Enums
 enum ContentType {
   IMAGE
@@ -245,6 +336,13 @@ enum PurchaseType {
   CONTENT_UNLOCK
   TIP
   SUBSCRIPTION
+  POST_UNLOCK
+}
+
+enum CommissionStatus {
+  PENDING
+  PAID
+  CANCELLED
 }
 
 enum AnalyticsEvent {
@@ -254,4 +352,7 @@ enum AnalyticsEvent {
   UNLOCK_SUCCESS
   TIP_SENT
   SUBSCRIPTION_START
+  POST_VIEW
+  POST_UNLOCK
+  REFERRAL_SIGNUP
 }

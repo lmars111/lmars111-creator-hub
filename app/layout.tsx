@@ -1,5 +1,6 @@
 import './globals.css'
 import { Providers } from './providers'
+import CookieConsent from '@/components/CookieConsent'
 
 export const metadata = {
   title: 'CreatorChat Hub - Connect with Your Favorite Creators',
@@ -17,6 +18,7 @@ export default function RootLayout({
       <body className="font-sans">
         <Providers>
           {children}
+          <CookieConsent />
         </Providers>
       </body>
     </html>
