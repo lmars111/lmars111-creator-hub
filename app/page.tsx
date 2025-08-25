@@ -1,5 +1,7 @@
 import Link from 'next/link'
-import { ArrowRight, MessageCircle, Zap, Shield, Users, Heart, Star } from 'lucide-react'
+import Image from 'next/image'
+import DemoSandbox from '@/components/DemoSandbox'
+import { ArrowRight, MessageCircle, Zap, Shield, Users, Heart, Star, DollarSign } from 'lucide-react'
 
 export default function HomePage() {
   return (
@@ -110,10 +112,12 @@ export default function HomePage() {
           
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 max-w-2xl mx-auto">
             <div className="flex items-center justify-center mb-6">
-              <img 
+              <Image 
                 src="https://images.unsplash.com/photo-1494790108755-2616b612b0f4?w=100&h=100&fit=crop&crop=face" 
                 alt="Jess Williams"
-                className="w-20 h-20 rounded-full border-4 border-white/20"
+                width={80}
+                height={80}
+                className="rounded-full border-4 border-white/20"
               />
               <div className="ml-4 text-left">
                 <h4 className="text-xl font-semibold">Jess Williams</h4>
@@ -162,6 +166,139 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">What Our Creators Say</h3>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Join thousands of creators who are already earning on our platform
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="flex items-center mb-4">
+                <Image
+                  src="https://images.unsplash.com/photo-1494790108755-2616b612b0f4?w=60&h=60&fit=crop"
+                  alt="Sarah M."
+                  width={48}
+                  height={48}
+                  className="rounded-full"
+                />
+                <div className="ml-3">
+                  <h4 className="font-semibold">Sarah M.</h4>
+                  <p className="text-sm text-gray-600">Fitness Creator</p>
+                </div>
+              </div>
+              <p className="text-gray-700 italic">
+                &ldquo;CreatorChat Hub has completely transformed how I connect with my audience. 
+                The personalized chat feature is amazing!&rdquo;
+              </p>
+              <div className="flex text-yellow-400 mt-3">
+                <Star className="h-4 w-4 fill-current" />
+                <Star className="h-4 w-4 fill-current" />
+                <Star className="h-4 w-4 fill-current" />
+                <Star className="h-4 w-4 fill-current" />
+                <Star className="h-4 w-4 fill-current" />
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="flex items-center mb-4">
+                <Image
+                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop"
+                  alt="Mike R."
+                  width={48}
+                  height={48}
+                  className="rounded-full"
+                />
+                <div className="ml-3">
+                  <h4 className="font-semibold">Mike R.</h4>
+                  <p className="text-sm text-gray-600">Tech Educator</p>
+                </div>
+              </div>
+              <p className="text-gray-700 italic">
+                &ldquo;The monetization features are fantastic. I&apos;ve increased my earnings by 300% 
+                since joining the platform!&rdquo;
+              </p>
+              <div className="flex text-yellow-400 mt-3">
+                <Star className="h-4 w-4 fill-current" />
+                <Star className="h-4 w-4 fill-current" />
+                <Star className="h-4 w-4 fill-current" />
+                <Star className="h-4 w-4 fill-current" />
+                <Star className="h-4 w-4 fill-current" />
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="flex items-center mb-4">
+                <Image
+                  src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=60&h=60&fit=crop"
+                  alt="Emma L."
+                  width={48}
+                  height={48}
+                  className="rounded-full"
+                />
+                <div className="ml-3">
+                  <h4 className="font-semibold">Emma L.</h4>
+                  <p className="text-sm text-gray-600">Lifestyle Blogger</p>
+                </div>
+              </div>
+              <p className="text-gray-700 italic">
+                &ldquo;The AI chat assistance and secure payments make everything so smooth. 
+                My fans love the personalized experience!&rdquo;
+              </p>
+              <div className="flex text-yellow-400 mt-3">
+                <Star className="h-4 w-4 fill-current" />
+                <Star className="h-4 w-4 fill-current" />
+                <Star className="h-4 w-4 fill-current" />
+                <Star className="h-4 w-4 fill-current" />
+                <Star className="h-4 w-4 fill-current" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust Signals Section */}
+      <section className="py-16 bg-gradient-to-r from-purple-50 to-pink-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Trusted & Secure</h3>
+            <p className="text-gray-600">
+              Your data and payments are protected with enterprise-grade security
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-8 text-center">
+            <div className="flex flex-col items-center">
+              <Shield className="h-12 w-12 text-green-600 mb-3" />
+              <h4 className="font-semibold mb-2">SSL Encrypted</h4>
+              <p className="text-sm text-gray-600">Bank-level security for all transactions</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <Users className="h-12 w-12 text-blue-600 mb-3" />
+              <h4 className="font-semibold mb-2">GDPR Compliant</h4>
+              <p className="text-sm text-gray-600">Full privacy protection and data rights</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <DollarSign className="h-12 w-12 text-green-600 mb-3" />
+              <h4 className="font-semibold mb-2">Stripe Powered</h4>
+              <p className="text-sm text-gray-600">Secure payments processed by Stripe</p>
+            </div>
+            <div className="flex flex-col items-center">
+              <Heart className="h-12 w-12 text-red-600 mb-3" />
+              <h4 className="font-semibold mb-2">24/7 Support</h4>
+              <p className="text-sm text-gray-600">Always here to help you succeed</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Demo Sandbox */}
+      <DemoSandbox />
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
