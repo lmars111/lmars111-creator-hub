@@ -1,4 +1,5 @@
 import Stripe from 'stripe'
+import { applyReferralCommissions, ReferralCalculation } from './referrals'
 
 // Gracefully handle missing Stripe configuration
 let stripe: Stripe | null = null
@@ -21,14 +22,49 @@ export { stripe }
 // Platform fee percentage (20%)
 export const PLATFORM_FEE_PERCENTAGE = 0.20
 
-export function calculateFees(amount: number) {
-  const platformFee = Math.round(amount * PLATFORM_FEE_PERCENTAGE)
+export interface FeeCalculation {
+  amount: number
+  platformFee: number
+  creatorEarnings: number
+  referralCommissions?: number
+  adjustedPlatformFee?: number
+}
+
+export function calculateFees(amount: number): FeeCalculation {
+  const platformFee = Math.round(amount * PLATFORM_FEE_PERCENTAGE * 100) / 100
   const creatorEarnings = amount - platformFee
   
   return {
     amount,
     platformFee,
     creatorEarnings,
+  }
+}
+
+export async function calculateFeesWithReferrals(
+  amount: number, 
+  buyerUserId?: string
+): Promise<FeeCalculation & { referralCalculation?: ReferralCalculation }> {
+  const baseFees = calculateFees(amount)
+  
+  if (!buyerUserId) {
+    return baseFees
+  }
+  
+  try {
+    const referralCalculation = await applyReferralCommissions(amount, buyerUserId)
+    
+    return {
+      amount,
+      platformFee: baseFees.platformFee,
+      creatorEarnings: referralCalculation.adjustedCreatorEarnings,
+      referralCommissions: referralCalculation.totalCommissions,
+      adjustedPlatformFee: referralCalculation.adjustedPlatformFee,
+      referralCalculation
+    }
+  } catch (error) {
+    console.warn('Failed to calculate referral commissions:', error)
+    return baseFees
   }
 }
 

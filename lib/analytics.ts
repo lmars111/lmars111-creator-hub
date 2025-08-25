@@ -35,6 +35,21 @@ interface StripeWebhookData extends AnalyticsEventData {
   customerId?: string
 }
 
+interface PostCreatedData extends AnalyticsEventData {
+  creatorId: string
+  postId: string
+  price: number
+  hasMedia?: boolean
+  contentLength?: number
+}
+
+interface PostViewData extends AnalyticsEventData {
+  postId: string
+  creatorId: string
+  userId?: string
+  isUnlocked?: boolean
+}
+
 class Analytics {
   private initialized = false
   private disabled = false
@@ -169,6 +184,20 @@ class Analytics {
       console.warn('Failed to track page view:', error)
     }
   }
+
+  /**
+   * Track when a creator creates a new post
+   */
+  postCreated(data: PostCreatedData) {
+    this.track('POST_CREATED', data)
+  }
+
+  /**
+   * Track when a user views a post
+   */
+  postView(data: PostViewData) {
+    this.track('POST_VIEW', data)
+  }
 }
 
 // Export singleton instance
@@ -181,5 +210,7 @@ export type {
   UnlockAttemptData,
   UnlockSuccessData,
   StripeWebhookData,
+  PostCreatedData,
+  PostViewData,
   AnalyticsEventData,
 }
