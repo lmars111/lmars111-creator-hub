@@ -102,6 +102,10 @@ export const RATE_LIMITS = {
     limit: 5, // 5 attempts
     windowMs: 15 * 60 * 1000, // 15 minutes
   },
+  SIGNUP: {
+    limit: 5, // 5 signup attempts  
+    windowMs: 60 * 60 * 1000, // 1 hour
+  },
   CHAT: {
     limit: 60, // 60 messages
     windowMs: 60 * 1000, // 1 minute
@@ -125,6 +129,11 @@ export function createRateLimitMiddleware(options: RateLimitOptions) {
   return (request: NextRequest) => {
     return rateLimit(request, options)
   }
+}
+
+// Rate limit for signup endpoints
+export function rateLimitSignup(request: NextRequest) {
+  return rateLimit(request, RATE_LIMITS.SIGNUP)
 }
 
 // Rate limit for authenticated endpoints

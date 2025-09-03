@@ -41,6 +41,13 @@ export const config = {
     enabled: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
   },
 
+  // Apple OAuth (optional)
+  apple: {
+    clientId: process.env.APPLE_CLIENT_ID,
+    clientSecret: process.env.APPLE_CLIENT_SECRET,
+    enabled: !!(process.env.APPLE_CLIENT_ID && process.env.APPLE_CLIENT_SECRET),
+  },
+
   // Stripe
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY,
@@ -126,6 +133,7 @@ export function validateConfig() {
 export const features = {
   email: config.email.enabled,
   googleAuth: config.google.enabled,
+  appleAuth: config.apple.enabled,
   stripe: config.stripe.enabled,
   s3Upload: config.s3.enabled,
   openaiChat: config.ai.openai.enabled,
@@ -142,4 +150,4 @@ export function isFeatureEnabled(feature: keyof typeof features): boolean {
 }
 
 // Export individual configs for convenience
-export const { database, auth, email, google, stripe, s3, ai, supabase, upstash, posthog, sentry, app } = config
+export const { database, auth, email, google, apple, stripe, s3, ai, supabase, upstash, posthog, sentry, app } = config

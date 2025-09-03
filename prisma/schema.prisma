@@ -13,14 +13,17 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
+  id            String        @id @default(cuid())
+  email         String        @unique
   name          String?
   image         String?
-  role          UserRole  @default(FAN)
+  role          UserRole      @default(FAN)
+  passwordHash  String?
+  isAdult       Boolean       @default(false)
+  status        AccountStatus @default(PENDING_VERIFICATION)
   emailVerified DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   // NextAuth relations
   accounts Account[]
@@ -48,6 +51,7 @@ model Creator {
   bio              String?
   avatarUrl        String?
   kycStatus        KycStatus       @default(PENDING)
+  onboardingStep   OnboardingStep  @default(EMAIL_VERIFICATION)
   stripeAccountId  String?
   defaultPersonaId String?
   createdAt        DateTime        @default(now())
@@ -339,6 +343,18 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+model SignUpAttempt {
+  id        String   @id @default(cuid())
+  ip        String
+  email     String?
+  success   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([ip])
+  @@index([createdAt])
+  @@map("signup_attempts")
+}
+
 // NextAuth.js models (preserved from existing)
 model Account {
   id                String  @id @default(cuid())
@@ -384,6 +400,23 @@ enum UserRole {
   FAN
   CREATOR
   ADMIN
+}
+
+enum AccountStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+}
+
+enum OnboardingStep {
+  EMAIL_VERIFICATION
+  KYC
+  PROFILE
+  PRICING
+  AI_TRAINING
+  ASSISTANT
+  REVIEW
+  COMPLETED
 }
 
 enum KycStatus {

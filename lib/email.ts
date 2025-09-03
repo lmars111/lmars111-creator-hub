@@ -45,6 +45,42 @@ export async function sendEmail({
   }
 }
 
+export async function sendVerificationEmail(userEmail: string, code: string) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #7c3aed;">Your verification code</h1>
+      <p>Hi there,</p>
+      <p>Thanks for signing up for CreatorChat Hub! Please use the verification code below to complete your account setup:</p>
+      
+      <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+        <h2 style="font-size: 32px; letter-spacing: 8px; margin: 0; color: #7c3aed; font-family: monospace;">${code}</h2>
+        <p style="margin: 8px 0 0 0; color: #6b7280; font-size: 14px;">This code expires in 24 hours</p>
+      </div>
+      
+      <p>If you didn't create an account with us, please ignore this email.</p>
+      <p>Best regards,<br>The CreatorChat Hub Team</p>
+    </div>
+  `
+
+  const text = `
+Your CreatorChat Hub verification code: ${code}
+
+This code expires in 24 hours.
+
+If you didn't create an account with us, please ignore this email.
+
+Best regards,
+The CreatorChat Hub Team
+  `
+
+  return await sendEmail({
+    to: userEmail,
+    subject: 'Your verification code',
+    html,
+    text,
+  })
+}
+
 export async function sendWelcomeEmail(userEmail: string, userName: string) {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
