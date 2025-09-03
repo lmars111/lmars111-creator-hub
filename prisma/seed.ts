@@ -1,9 +1,11 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, UserRole, KycStatus, SubscriptionStatus, MessageSender, AIProvider, ContentVisibility } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  // Create demo user and creator "jess"
+  console.log('🌱 Starting seed...')
+
+  // Create demo users
   const jessUser = await prisma.user.upsert({
     where: { email: 'jess@creatorhub.com' },
     update: {},
@@ -11,181 +13,290 @@ async function main() {
       email: 'jess@creatorhub.com',
       name: 'Jess Williams',
       image: 'https://images.unsplash.com/photo-1494790108755-2616b612b0f4?w=400&h=400&fit=crop',
+      role: UserRole.CREATOR,
+      emailVerified: new Date(),
     },
   })
 
+  const fan1 = await prisma.user.upsert({
+    where: { email: 'alex@example.com' },
+    update: {},
+    create: {
+      email: 'alex@example.com',
+      name: 'Alex Chen',
+      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
+      role: UserRole.FAN,
+      emailVerified: new Date(),
+    },
+  })
+
+  const fan2 = await prisma.user.upsert({
+    where: { email: 'sarah@example.com' },
+    update: {},
+    create: {
+      email: 'sarah@example.com',
+      name: 'Sarah Johnson',
+      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop',
+      role: UserRole.FAN,
+      emailVerified: new Date(),
+    },
+  })
+
+  // Create creator profile
   const jessCreator = await prisma.creator.upsert({
-    where: { handle: 'jess' },
+    where: { userId: jessUser.id },
     update: {},
     create: {
       userId: jessUser.id,
       handle: 'jess',
       displayName: 'Jess Williams',
       bio: 'Lifestyle content creator sharing daily adventures, wellness tips, and behind-the-scenes moments. Join my community for exclusive content and personal chats! 💕',
-      image: 'https://images.unsplash.com/photo-1494790108755-2616b612b0f4?w=400&h=400&fit=crop',
-      headerImage: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=400&fit=crop',
-      isVerified: true,
+      avatarUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b0f4?w=400&h=400&fit=crop',
+      kycStatus: KycStatus.VERIFIED,
+      stripeAccountId: 'acct_demo_creator_jess',
+    },
+  })
+
+  // Create fan profiles
+  await prisma.fanProfile.upsert({
+    where: { userId: fan1.id },
+    update: {},
+    create: {
+      userId: fan1.id,
+      displayName: 'Alex Chen',
+      avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
+    },
+  })
+
+  await prisma.fanProfile.upsert({
+    where: { userId: fan2.id },
+    update: {},
+    create: {
+      userId: fan2.id,
+      displayName: 'Sarah Johnson',
+      avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop',
+    },
+  })
+
+  // Create AI persona
+  const defaultPersona = await prisma.persona.create({
+    data: {
+      creatorId: jessCreator.id,
+      name: 'Jess',
+      systemPrompt: 'You are Jess, a lifestyle content creator. You are bubbly, supportive, and love connecting with your fans. Use emojis naturally and share personal experiences. Keep responses personal and engaging.',
+      temperature: 0.8,
+      modelProvider: AIProvider.OPENAI,
+      modelName: 'gpt-4o-mini',
+      embeddingModel: 'text-embedding-3-small',
+    },
+  })
+
+  // Update creator with default persona
+  await prisma.creator.update({
+    where: { id: jessCreator.id },
+    data: { defaultPersonaId: defaultPersona.id },
+  })
+
+  // Create subscription tiers
+  const basicTier = await prisma.subscriptionTier.create({
+    data: {
+      creatorId: jessCreator.id,
+      name: 'Basic',
+      priceCents: 999, // $9.99
+      interval: 'month',
+      benefits: ['Access to exclusive posts', 'Monthly live streams', 'Community access'],
       isActive: true,
-      totalEarnings: 1250.75,
-      totalFans: 248,
-      totalMessages: 1847,
     },
   })
 
-  // Create locked content for jess
-  const lockedMessage = await prisma.content.create({
+  const premiumTier = await prisma.subscriptionTier.create({
     data: {
       creatorId: jessCreator.id,
-      title: 'Behind the Scenes: Morning Routine 🌅',
-      description: 'Get an exclusive look at my actual morning routine! This includes my skincare secrets, workout tips, and the smoothie recipe everyone asks about.',
-      type: 'TEXT',
-      price: 9.00,
-      isLocked: true,
-      mediaUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop',
-      thumbnail: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop',
-      unlockCount: 23,
+      name: 'Premium',
+      priceCents: 1999, // $19.99
+      interval: 'month',
+      benefits: ['Everything in Basic', 'Personal DMs', 'Weekly 1-on-1 calls', 'Custom content requests'],
+      isActive: true,
     },
   })
 
-  // Create AI config for jess
-  await prisma.aIConfig.create({
+  // Create subscriptions
+  await prisma.subscription.create({
     data: {
+      fanId: fan1.id,
       creatorId: jessCreator.id,
-      personality: JSON.stringify({
-        traits: ['friendly', 'bubbly', 'supportive', 'authentic'],
-        style: 'Uses lots of emojis, casual language, and personal anecdotes'
-      }),
-      tone: 'conversational',
-      topics: JSON.stringify(['wellness', 'lifestyle', 'beauty', 'fitness', 'daily life']),
-      responseLength: 'medium',
-      creativity: 0.8,
-      isEnabled: true,
-      systemPrompt: 'You are Jess, a lifestyle content creator. You are bubbly, supportive, and love connecting with your fans. Use emojis naturally and share personal experiences.',
+      tierId: basicTier.id,
+      stripeCustomerId: 'cus_demo_alex',
+      stripeSubscriptionId: 'sub_demo_alex_basic',
+      status: SubscriptionStatus.ACTIVE,
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     },
   })
 
-  // Create some demo fans
-  const fan1 = await prisma.user.create({
+  await prisma.subscription.create({
     data: {
-      email: 'fan1@example.com',
-      name: 'Alex Chen',
-      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
+      fanId: fan2.id,
+      creatorId: jessCreator.id,
+      tierId: premiumTier.id,
+      stripeCustomerId: 'cus_demo_sarah',
+      stripeSubscriptionId: 'sub_demo_sarah_premium',
+      status: SubscriptionStatus.ACTIVE,
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     },
   })
 
-  const fan2 = await prisma.user.create({
-    data: {
-      email: 'fan2@example.com', 
-      name: 'Sarah Johnson',
-      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop',
-    },
-  })
-
-  // Create fan relationships
-  await prisma.creatorFan.createMany({
-    data: [
-      { creatorId: jessCreator.id, userId: fan1.id },
-      { creatorId: jessCreator.id, userId: fan2.id },
-    ],
-  })
-
-  // Create conversations
-  const conv1 = await prisma.conversation.create({
+  // Create chats
+  const chat1 = await prisma.chat.create({
     data: {
       creatorId: jessCreator.id,
       fanId: fan1.id,
     },
   })
 
-  const conv2 = await prisma.conversation.create({
+  const chat2 = await prisma.chat.create({
     data: {
       creatorId: jessCreator.id,
       fanId: fan2.id,
     },
   })
 
-  // Create some demo messages
+  // Create demo messages
   await prisma.message.createMany({
     data: [
       {
-        conversationId: conv1.id,
+        chatId: chat1.id,
         senderId: fan1.id,
+        sender: MessageSender.FAN,
         text: "Hi Jess! Love your content, can't wait to see more 😍",
-        type: 'TEXT',
-        isFromCreator: false,
       },
       {
-        conversationId: conv1.id,
+        chatId: chat1.id,
         senderId: jessUser.id,
-        text: "Aww thank you so much Alex! 💕 I have some amazing content coming up that I think you'll love!",
-        type: 'TEXT',
-        isFromCreator: true,
-        isFromAI: true,
+        sender: MessageSender.AI,
+        text: "Aww thank you so much Alex! 💕 That means the world to me! I have some exciting content coming up that I think you'll absolutely love. What type of content are you most excited to see? ✨",
       },
       {
-        conversationId: conv2.id,
+        chatId: chat2.id,
         senderId: fan2.id,
-        text: "Your morning routine post was so inspiring! Do you have any tips for staying motivated?",
-        type: 'TEXT',
-        isFromCreator: false,
+        sender: MessageSender.FAN,
+        text: "Hey Jess! Your wellness tips have been so helpful 🙏",
+      },
+      {
+        chatId: chat2.id,
+        senderId: jessUser.id,
+        sender: MessageSender.AI,
+        text: "Sarah, you're so sweet! 🥺 I'm thrilled that my wellness content is helping you on your journey! It's exactly why I do what I do - to support amazing people like you 💪✨ How are you feeling lately?",
       },
     ],
   })
 
-  // Create demo purchases
-  await prisma.purchase.createMany({
+  // Create sample content
+  await prisma.content.createMany({
     data: [
       {
-        userId: fan1.id,
         creatorId: jessCreator.id,
-        contentId: lockedMessage.id,
-        amount: 9.00,
-        platformFee: 1.80,
-        creatorEarnings: 7.20,
-        stripePaymentId: 'pi_demo_payment_1',
-        status: 'COMPLETED',
-        type: 'CONTENT_UNLOCK',
-        processedAt: new Date(),
+        title: 'Morning Routine Secrets',
+        description: 'My full morning routine that changed my life!',
+        mediaKey: 'content/jess/morning-routine-video.mp4',
+        mediaType: 'video/mp4',
+        visibility: ContentVisibility.SUBSCRIBER,
+      },
+      {
+        creatorId: jessCreator.id,
+        title: 'Behind the Scenes Photoshoot',
+        description: 'Exclusive behind-the-scenes from my latest photoshoot 📸',
+        mediaKey: 'content/jess/bts-photoshoot.jpg',
+        mediaType: 'image/jpeg',
+        visibility: ContentVisibility.PPV,
+        priceCents: 299, // $2.99
+      },
+      {
+        creatorId: jessCreator.id,
+        title: 'Free Wellness Guide',
+        description: 'A comprehensive guide to starting your wellness journey',
+        mediaKey: 'content/jess/wellness-guide.pdf',
+        mediaType: 'application/pdf',
+        visibility: ContentVisibility.FREE,
       },
     ],
   })
 
-  // Create analytics events
-  await prisma.analytics.createMany({
+  // Create sample memory entries
+  await prisma.memory.createMany({
     data: [
       {
-        userId: fan1.id,
         creatorId: jessCreator.id,
-        event: 'VIEW_CREATOR',
-        properties: JSON.stringify({ source: 'direct', timestamp: new Date() }),
+        kind: 'PROFILE',
+        content: 'Fan Alex Chen loves fitness content and is always enthusiastic about wellness tips. Recently started a new workout routine.',
+        externalRef: 'profile_alex_001',
       },
       {
-        userId: fan1.id,
         creatorId: jessCreator.id,
-        event: 'CHAT_START',
-        properties: JSON.stringify({ timestamp: new Date() }),
+        kind: 'PROFILE',
+        content: 'Fan Sarah Johnson is interested in mental health and mindfulness. Often asks about meditation techniques and stress management.',
+        externalRef: 'profile_sarah_001',
       },
       {
-        userId: fan1.id,
         creatorId: jessCreator.id,
-        event: 'UNLOCK_SUCCESS',
-        properties: JSON.stringify({ contentId: lockedMessage.id, amount: 9.00, timestamp: new Date() }),
+        kind: 'LONG_TERM',
+        content: 'Fans really respond well to morning routine content and behind-the-scenes posts. Engagement is highest on wellness and lifestyle tips.',
+        externalRef: 'insight_content_001',
       },
     ],
   })
 
-  console.log('✅ Database seeded successfully!')
-  console.log('Demo creator: jess (handle: @jess)')
-  console.log('Demo fans: Alex Chen, Sarah Johnson')
-  console.log('Demo locked content: $9 morning routine message')
+  // Create sample tips
+  await prisma.tip.create({
+    data: {
+      fanId: fan1.id,
+      creatorId: jessCreator.id,
+      amountCents: 500, // $5.00
+      stripePaymentIntentId: 'pi_demo_tip_alex_001',
+    },
+  })
+
+  // Create sample notifications
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: jessUser.id,
+        type: 'new_subscriber',
+        payload: { fanName: 'Alex Chen', tierName: 'Basic' },
+      },
+      {
+        userId: fan1.id,
+        type: 'new_content',
+        payload: { contentTitle: 'Morning Routine Secrets', creatorName: 'Jess Williams' },
+      },
+      {
+        userId: jessUser.id,
+        type: 'tip_received',
+        payload: { fanName: 'Alex Chen', amount: 500 },
+      },
+    ],
+  })
+
+  console.log('✅ Seed completed successfully!')
+  console.log('📊 Created:')
+  console.log('   - 3 users (1 creator, 2 fans)')
+  console.log('   - 1 creator profile with KYC verified')
+  console.log('   - 2 fan profiles')
+  console.log('   - 1 AI persona')
+  console.log('   - 2 subscription tiers')
+  console.log('   - 2 active subscriptions')
+  console.log('   - 2 chat conversations')
+  console.log('   - 4 demo messages')
+  console.log('   - 3 content items (free, subscriber, PPV)')
+  console.log('   - 3 memory entries')
+  console.log('   - 1 tip')
+  console.log('   - 3 notifications')
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect()
-  })
-  .catch(async (e) => {
-    console.error(e)
-    await prisma.$disconnect()
+  .catch((e) => {
+    console.error('❌ Seed failed:', e)
     process.exit(1)
+  })
+  .finally(async () => {
+    await prisma.$disconnect()
   })
