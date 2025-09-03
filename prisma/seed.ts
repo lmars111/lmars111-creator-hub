@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, KycStatus, SubscriptionStatus, MessageSender, AIProvider, ContentVisibility } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -13,7 +13,7 @@ async function main() {
       email: 'jess@creatorhub.com',
       name: 'Jess Williams',
       image: 'https://images.unsplash.com/photo-1494790108755-2616b612b0f4?w=400&h=400&fit=crop',
-      role: UserRole.CREATOR,
+      role: 'CREATOR',
       emailVerified: new Date(),
     },
   })
@@ -25,7 +25,7 @@ async function main() {
       email: 'alex@example.com',
       name: 'Alex Chen',
       image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
-      role: UserRole.FAN,
+      role: 'FAN',
       emailVerified: new Date(),
     },
   })
@@ -37,7 +37,7 @@ async function main() {
       email: 'sarah@example.com',
       name: 'Sarah Johnson',
       image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop',
-      role: UserRole.FAN,
+      role: 'FAN',
       emailVerified: new Date(),
     },
   })
@@ -52,7 +52,7 @@ async function main() {
       displayName: 'Jess Williams',
       bio: 'Lifestyle content creator sharing daily adventures, wellness tips, and behind-the-scenes moments. Join my community for exclusive content and personal chats! 💕',
       avatarUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b0f4?w=400&h=400&fit=crop',
-      kycStatus: KycStatus.VERIFIED,
+      kycStatus: 'VERIFIED',
       stripeAccountId: 'acct_demo_creator_jess',
     },
   })
@@ -85,7 +85,7 @@ async function main() {
       name: 'Jess',
       systemPrompt: 'You are Jess, a lifestyle content creator. You are bubbly, supportive, and love connecting with your fans. Use emojis naturally and share personal experiences. Keep responses personal and engaging.',
       temperature: 0.8,
-      modelProvider: AIProvider.OPENAI,
+      modelProvider: 'OPENAI',
       modelName: 'gpt-4o-mini',
       embeddingModel: 'text-embedding-3-small',
     },
@@ -128,7 +128,7 @@ async function main() {
       tierId: basicTier.id,
       stripeCustomerId: 'cus_demo_alex',
       stripeSubscriptionId: 'sub_demo_alex_basic',
-      status: SubscriptionStatus.ACTIVE,
+      status: 'ACTIVE',
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     },
   })
@@ -140,7 +140,7 @@ async function main() {
       tierId: premiumTier.id,
       stripeCustomerId: 'cus_demo_sarah',
       stripeSubscriptionId: 'sub_demo_sarah_premium',
-      status: SubscriptionStatus.ACTIVE,
+      status: 'ACTIVE',
       currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
     },
   })
@@ -166,25 +166,25 @@ async function main() {
       {
         chatId: chat1.id,
         senderId: fan1.id,
-        sender: MessageSender.FAN,
+        sender: 'FAN',
         text: "Hi Jess! Love your content, can't wait to see more 😍",
       },
       {
         chatId: chat1.id,
         senderId: jessUser.id,
-        sender: MessageSender.AI,
+        sender: 'AI',
         text: "Aww thank you so much Alex! 💕 That means the world to me! I have some exciting content coming up that I think you'll absolutely love. What type of content are you most excited to see? ✨",
       },
       {
         chatId: chat2.id,
         senderId: fan2.id,
-        sender: MessageSender.FAN,
+        sender: 'FAN',
         text: "Hey Jess! Your wellness tips have been so helpful 🙏",
       },
       {
         chatId: chat2.id,
         senderId: jessUser.id,
-        sender: MessageSender.AI,
+        sender: 'AI',
         text: "Sarah, you're so sweet! 🥺 I'm thrilled that my wellness content is helping you on your journey! It's exactly why I do what I do - to support amazing people like you 💪✨ How are you feeling lately?",
       },
     ],
@@ -199,7 +199,7 @@ async function main() {
         description: 'My full morning routine that changed my life!',
         mediaKey: 'content/jess/morning-routine-video.mp4',
         mediaType: 'video/mp4',
-        visibility: ContentVisibility.SUBSCRIBER,
+        visibility: 'SUBSCRIBER',
       },
       {
         creatorId: jessCreator.id,
@@ -207,7 +207,7 @@ async function main() {
         description: 'Exclusive behind-the-scenes from my latest photoshoot 📸',
         mediaKey: 'content/jess/bts-photoshoot.jpg',
         mediaType: 'image/jpeg',
-        visibility: ContentVisibility.PPV,
+        visibility: 'PPV',
         priceCents: 299, // $2.99
       },
       {
@@ -216,7 +216,7 @@ async function main() {
         description: 'A comprehensive guide to starting your wellness journey',
         mediaKey: 'content/jess/wellness-guide.pdf',
         mediaType: 'application/pdf',
-        visibility: ContentVisibility.FREE,
+        visibility: 'FREE',
       },
     ],
   })
