@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Block admin and auth pages
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /api/
+Disallow: /onboarding/
+
+# Allow public creator profiles
+Allow: /c/
+
+Sitemap: https://creatorhub.com/sitemap.xml
