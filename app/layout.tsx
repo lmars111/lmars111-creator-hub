@@ -1,11 +1,13 @@
 import './globals.css'
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
 import { Providers } from './providers'
-import CookieConsent from '@/components/CookieConsent'
 
-export const metadata = {
-  title: 'CreatorChat Hub - Connect with Your Favorite Creators',
-  description: 'The ultimate platform for creators and fans to connect through personalized chat experiences, exclusive content, and direct interactions.',
-  keywords: 'creator platform, fan chat, exclusive content, creator economy, social media',
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
+  title: 'CreatorChat Hub',
+  description: 'AI-powered creator platform',
 }
 
 export default function RootLayout({
@@ -15,10 +17,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="font-sans">
+      <body className={`${inter.className} min-h-screen bg-background text-foreground`}>
         <Providers>
           {children}
-          <CookieConsent />
         </Providers>
       </body>
     </html>

@@ -2,98 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 262.1 83.3% 57.8%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 262.1 83.3% 57.8%;
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 262.1 83.3% 57.8%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 262.1 83.3% 57.8%;
-  }
-
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-    font-family: system-ui, sans-serif;
-  }
+:root {
+  --background: 255 255 255;
+  --foreground: 17 24 39;
 }
 
-@layer components {
-  .chat-bubble {
-    @apply max-w-xs lg:max-w-md px-4 py-2 rounded-2xl;
-  }
-  
-  .chat-bubble-user {
-    @apply bg-blue-500 text-white ml-auto rounded-br-md;
-  }
-  
-  .chat-bubble-creator {
-    @apply bg-gray-100 text-gray-900 mr-auto rounded-bl-md;
-  }
-  
-  .locked-content {
-    @apply relative overflow-hidden rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 p-4 text-white;
-  }
-  
-  .unlock-button {
-    @apply bg-white text-purple-600 font-semibold py-2 px-4 rounded-full hover:bg-gray-100 transition-colors;
-  }
-  
-  .creator-card {
-    @apply bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow;
-  }
-  
-  .admin-card {
-    @apply bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow;
-  }
+.dark:root {
+  --background: 10 10 10;
+  --foreground: 229 231 235;
+}
+
+body {
+  background: rgb(var(--background));
+  color: rgb(var(--foreground));
 }
 
 @layer utilities {
   .text-gradient {
     @apply bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent;
-  }
-  
-  .glass {
-    @apply bg-white/80 backdrop-blur-sm border border-white/20;
   }
 }
