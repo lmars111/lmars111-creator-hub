@@ -57,15 +57,7 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api/auth (NextAuth.js routes)
-     * - api/webhooks (webhook endpoints)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (robots.txt, sitemap.xml, etc.)
-     */
-    '/((?!api/auth|api/webhooks|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)',
+    // Disable middleware for demo
+    '/disabled-for-demo',
   ],
 }

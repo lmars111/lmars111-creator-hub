@@ -15,22 +15,30 @@ try {
 export const authOptions: NextAuthOptions = {
   ...(prisma && { adapter: PrismaAdapter(prisma) }),
   providers: [
-    EmailProvider({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT),
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
+    ...(process.env.EMAIL_SERVER_HOST && process.env.EMAIL_FROM ? [
+      EmailProvider({
+        server: {
+          host: process.env.EMAIL_SERVER_HOST,
+          port: Number(process.env.EMAIL_SERVER_PORT),
+          auth: {
+            user: process.env.EMAIL_SERVER_USER,
+            pass: process.env.EMAIL_SERVER_PASSWORD,
+          },
         },
-      },
-      from: process.env.EMAIL_FROM,
-    }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
+        from: process.env.EMAIL_FROM,
+      })
+    ] : []),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? [
+      GoogleProvider({
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      })
+    ] : []),
   ],
+  session: {
+    strategy: prisma ? 'database' : 'jwt',
+  },
+  secret: process.env.NEXTAUTH_SECRET || 'demo-secret-for-development',
   callbacks: {
     async session({ session, user }) {
       if (session.user && prisma) {
@@ -73,8 +81,9 @@ export const authOptions: NextAuthOptions = {
     },
   },
   session: {
-    strategy: 'database',
+    strategy: prisma ? 'database' : 'jwt',
   },
+  secret: process.env.NEXTAUTH_SECRET || 'demo-secret-for-development',
   pages: {
     signIn: '/auth/signin',
     signOut: '/auth/signout',
