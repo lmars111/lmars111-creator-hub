@@ -8,6 +8,8 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Optional pgvector extension for vector fields
+  // extensions = ["pgvector"]
 }
 
 model User {
@@ -15,9 +17,8 @@ model User {
   email         String    @unique
   name          String?
   image         String?
+  role          UserRole  @default(FAN)
   emailVerified DateTime?
-  referralCode  String?   // Their personal referral code
-  referredBy    String?   // Who referred them
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -25,99 +26,112 @@ model User {
   accounts Account[]
   sessions Session[]
 
-  // Relations
-  creator     Creator?
-  fanOf       CreatorFan[]
-  purchases   Purchase[]
-  messages    Message[]
-  analytics   Analytics[]
-  ownedReferralCodes ReferralCode[]
-  commissions Commission[]
-  referrals   ReferralHierarchy[] @relation("UserReferrals")
-  referrers   ReferralHierarchy[] @relation("ReferrerHierarchy")
+  // MVP Relations
+  creator        Creator?
+  fanProfile     FanProfile?
+  subscriptions  Subscription[]  @relation("SubscriptionFan")
+  sentMessages   Message[]       @relation("MessageSender")
+  tips           Tip[]
+  purchases      Purchase[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
 
+  @@index([email])
   @@map("users")
 }
 
 model Creator {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  handle      String   @unique
-  displayName String
-  bio         String?
-  image       String?
-  headerImage String?
-  isVerified  Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  
-  // Stripe Connect
-  stripeAccountId String?
-  stripeOnboarded Boolean @default(false)
-  
-  // Earnings & Stats
-  totalEarnings  Decimal @default(0)
-  totalFans      Int     @default(0)
-  totalMessages  Int     @default(0)
-  totalCommissions Decimal @default(0) // Referral commissions earned
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String          @id @default(cuid())
+  userId           String          @unique
+  handle           String          @unique
+  displayName      String
+  bio              String?
+  avatarUrl        String?
+  kycStatus        KycStatus       @default(PENDING)
+  stripeAccountId  String?
+  defaultPersonaId String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   // Relations
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fans          CreatorFan[]
-  content       Content[]
-  posts         Post[]
-  conversations Conversation[]
-  purchases     Purchase[]
-  aiConfig      AIConfig?
-  representatives Representative[]
-  referralCodes ReferralCode[]
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionTiers SubscriptionTier[]
+  subscriptions     Subscription[]      @relation("SubscriptionCreator")
+  chats             Chat[]
+  personas          Persona[]
+  memories          Memory[]
+  tips              Tip[]
+  content           Content[]
+  purchases         Purchase[]
+  payments          Payment[]
+  kycVerifications  KycVerification[]
+  defaultPersona    Persona?            @relation("DefaultPersona", fields: [defaultPersonaId], references: [id])
 
+  @@index([handle])
+  @@index([userId])
   @@map("creators")
 }
 
-model CreatorFan {
-  id        String   @id @default(cuid())
-  creatorId String
-  userId    String
-  createdAt DateTime @default(now())
+model FanProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  displayName String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([creatorId, userId])
-  @@map("creator_fans")
+  @@map("fan_profiles")
 }
 
-model Content {
-  id          String      @id @default(cuid())
+model SubscriptionTier {
+  id          String   @id @default(cuid())
   creatorId   String
-  title       String
-  description String?
-  type        ContentType
-  price       Decimal     // Price to unlock
-  isLocked    Boolean     @default(true)
-  mediaUrl    String?
-  thumbnail   String?
-  unlockCount Int         @default(0)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  name        String
+  priceCents  Int
+  interval    String   @default("month")
+  benefits    String[] // Array of benefit strings
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  creator   Creator    @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  purchases Purchase[]
-  messages  Message[]
+  creator       Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
 
-  @@map("content")
+  @@index([creatorId])
+  @@map("subscription_tiers")
 }
 
-model Conversation {
+model Subscription {
+  id                     String            @id @default(cuid())
+  fanId                  String
+  creatorId              String
+  tierId                 String
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?           @unique
+  status                 SubscriptionStatus
+  currentPeriodEnd       DateTime?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  // Relations
+  fan     User             @relation("SubscriptionFan", fields: [fanId], references: [id], onDelete: Cascade)
+  creator Creator          @relation("SubscriptionCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  tier    SubscriptionTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
+
+  @@index([fanId])
+  @@index([creatorId])
+  @@index([stripeSubscriptionId])
+  @@map("subscriptions")
+}
+
+model Chat {
   id        String   @id @default(cuid())
   creatorId String
   fanId     String
-  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -127,190 +141,205 @@ model Conversation {
   messages Message[]
 
   @@unique([creatorId, fanId])
-  @@map("conversations")
+  @@index([creatorId])
+  @@index([fanId])
+  @@map("chats")
 }
 
 model Message {
-  id             String      @id @default(cuid())
-  conversationId String
-  senderId       String
-  contentId      String?
-  text           String?
-  mediaUrl       String?
-  type           MessageType @default(TEXT)
-  isFromCreator  Boolean
-  isFromAI       Boolean     @default(false)
-  isFromRep      Boolean     @default(false)
-  repId          String?
-  createdAt      DateTime    @default(now())
+  id       String        @id @default(cuid())
+  chatId   String
+  senderId String
+  sender   MessageSender
+  text     String?
+  mediaUrl String?
+  createdAt DateTime     @default(now())
 
   // Relations
-  conversation Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User             @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  content      Content?         @relation(fields: [contentId], references: [id])
-  representative Representative? @relation(fields: [repId], references: [id])
+  chat       Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderUser User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
 
+  @@index([chatId])
+  @@index([senderId])
   @@map("messages")
 }
 
-model Purchase {
-  id                String        @id @default(cuid())
-  userId            String
-  creatorId         String
-  contentId         String?
-  postId            String?       // For post unlocks
-  amount            Decimal
-  platformFee       Decimal
-  creatorEarnings   Decimal
-  referralCommissions Decimal     @default(0) // Total referral commissions
-  stripePaymentId   String        @unique
-  status            PurchaseStatus
-  type              PurchaseType
-  createdAt         DateTime      @default(now())
-  processedAt       DateTime?
-
-  // Relations
-  user    User     @relation(fields: [userId], references: [id])
-  creator Creator  @relation(fields: [creatorId], references: [id])
-  content Content? @relation(fields: [contentId], references: [id])
-  post    Post?    @relation(fields: [postId], references: [id])
-  commission Commission?
-
-  @@map("purchases")
-}
-
-model AIConfig {
+model Persona {
   id              String   @id @default(cuid())
-  creatorId       String   @unique
-  personality     String   // JSON string of personality traits
-  tone            String   @default("conversational")
-  topics          String   // JSON array of topics
-  responseLength  String   @default("medium")
-  creativity      Float    @default(0.7)
-  isEnabled       Boolean  @default(false)
-  systemPrompt    String?
+  creatorId       String
+  name            String
+  systemPrompt    String
+  temperature     Float    @default(0.7)
+  modelProvider   AIProvider @default(OPENAI)
+  modelName       String   @default("gpt-4o-mini")
+  embeddingModel  String   @default("text-embedding-3-small")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   // Relations
+  creator           Creator   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  defaultForCreator Creator[] @relation("DefaultPersona")
+
+  @@index([creatorId])
+  @@map("personas")
+}
+
+model Memory {
+  id          String     @id @default(cuid())
+  creatorId   String
+  kind        MemoryKind
+  // vector      Unsupported("vector(1536)")? // pgvector field if available
+  externalRef String? // Fallback for external vector storage
+  content     String
+  createdAt   DateTime   @default(now())
+
+  // Relations
   creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
-  @@map("ai_configs")
+  @@index([creatorId])
+  @@index([kind])
+  @@map("memories")
 }
 
-model Representative {
-  id          String   @id @default(cuid())
-  creatorId   String
-  userId      String
-  name        String
-  email       String
-  isActive    Boolean  @default(true)
-  permissions String   // JSON string of permissions
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Payment {
+  id                  String        @id @default(cuid())
+  type                PaymentType
+  amountCents         Int
+  stripePaymentIntentId String?     @unique
+  applicationFeeCents Int
+  creatorTransferId   String?
+  status              PaymentStatus
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  // Relations (polymorphic)
+  creatorId String
+  creator   Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@index([stripePaymentIntentId])
+  @@map("payments")
+}
+
+model Tip {
+  id                    String   @id @default(cuid())
+  fanId                 String
+  creatorId             String
+  amountCents           Int
+  stripePaymentIntentId String?  @unique
+  createdAt             DateTime @default(now())
 
   // Relations
-  creator  Creator   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages Message[]
+  fan     User    @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
-  @@unique([creatorId, userId])
-  @@map("representatives")
+  @@index([fanId])
+  @@index([creatorId])
+  @@map("tips")
 }
 
-model Analytics {
-  id         String        @id @default(cuid())
-  userId     String?
-  creatorId  String?
-  event      AnalyticsEvent
-  properties String        // JSON string
-  createdAt  DateTime      @default(now())
-
-  // Relations
-  user User? @relation(fields: [userId], references: [id])
-
-  @@map("analytics")
-}
-
-model Post {
-  id          String      @id @default(cuid())
+model Content {
+  id          String           @id @default(cuid())
   creatorId   String
   title       String
-  content     String?
-  mediaUrl    String?
-  thumbnailUrl String?
-  blurredUrl  String?    // Blurred version for preview
-  price       Decimal    // Price to unlock
-  isLocked    Boolean    @default(true)
-  viewCount   Int        @default(0)
-  unlockCount Int        @default(0)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  description String?
+  mediaKey    String? // S3 key
+  mediaType   String?
+  visibility  ContentVisibility
+  priceCents  Int?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   // Relations
-  creator   Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creator   Creator    @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   purchases Purchase[]
 
-  @@map("posts")
+  @@index([creatorId])
+  @@index([visibility])
+  @@map("content")
 }
 
-model ReferralCode {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  creatorId   String?  // Creator who owns this code
-  userId      String?  // User who can use this code
-  maxUses     Int?     // Maximum number of uses (null = unlimited)
-  currentUses Int      @default(0)
-  isActive    Boolean  @default(true)
-  expiresAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Purchase {
+  id                    String   @id @default(cuid())
+  fanId                 String
+  contentId             String
+  amountCents           Int
+  stripePaymentIntentId String?  @unique
+  createdAt             DateTime @default(now())
 
   // Relations
-  creator     Creator? @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  commissions Commission[]
+  fan     User    @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String
 
-  @@map("referral_codes")
+  @@index([fanId])
+  @@index([contentId])
+  @@map("purchases")
 }
 
-model Commission {
-  id             String     @id @default(cuid())
-  referralCodeId String
-  purchaseId     String     @unique
-  referrerId     String     // User who made the referral
-  level          Int        // 1, 2, or 3 (L1, L2, L3)
-  percentage     Decimal    // Commission percentage (5%, 2%, 1%)
-  amount         Decimal    // Commission amount in dollars
-  status         CommissionStatus @default(PENDING)
-  paidAt         DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime @default(now())
 
   // Relations
-  referralCode ReferralCode @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
-  purchase     Purchase     @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
-  referrer     User         @relation(fields: [referrerId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("commissions")
+  @@index([userId])
+  @@index([readAt])
+  @@map("notifications")
 }
 
-model ReferralHierarchy {
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  provider    String    // STRIPE, etc.
+  eventId     String    @unique
+  payload     Json
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([provider])
+  @@index([eventId])
+  @@map("webhook_events")
+}
+
+model KycVerification {
+  id          String        @id @default(cuid())
+  creatorId   String
+  status      KycStatus
+  provider    KycProvider   @default(STRIPE_IDENTITY)
+  referenceId String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@map("kyc_verifications")
+}
+
+model AuditLog {
   id           String   @id @default(cuid())
-  userId       String   // Child user
-  referrerId   String   // Parent referrer
-  level        Int      // Level in hierarchy (1, 2, 3)
+  actorUserId  String?
+  action       String
+  target       String
+  metadata     Json
   createdAt    DateTime @default(now())
 
   // Relations
-  user     User @relation("UserReferrals", fields: [userId], references: [id], onDelete: Cascade)
-  referrer User @relation("ReferrerHierarchy", fields: [referrerId], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actorUserId], references: [id])
 
-  @@unique([userId, referrerId, level])
-  @@map("referral_hierarchy")
+  @@index([actorUserId])
+  @@index([action])
+  @@map("audit_logs")
 }
 
-// NextAuth.js models
+// NextAuth.js models (preserved from existing)
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -351,52 +380,65 @@ model VerificationToken {
 }
 
 // Enums
-enum ContentType {
-  IMAGE
-  VIDEO
-  AUDIO
-  TEXT
-  CUSTOM
+enum UserRole {
+  FAN
+  CREATOR
+  ADMIN
 }
 
-enum MessageType {
-  TEXT
-  IMAGE
-  VIDEO
-  AUDIO
-  LOCKED_CONTENT
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+  UNPAID
+}
+
+enum MessageSender {
+  FAN
+  CREATOR
+  AI
+}
+
+enum AIProvider {
+  OPENAI
+  ANTHROPIC
+}
+
+enum MemoryKind {
+  PROFILE
+  LONG_TERM
+  CONVERSATION_SUMMARY
+}
+
+enum PaymentType {
+  SUBSCRIPTION
   TIP
-  SYSTEM
+  PPV
 }
 
-enum PurchaseStatus {
+enum PaymentStatus {
   PENDING
   COMPLETED
   FAILED
   REFUNDED
 }
 
-enum PurchaseType {
-  CONTENT_UNLOCK
-  TIP
-  SUBSCRIPTION
-  POST_UNLOCK
+enum ContentVisibility {
+  FREE
+  SUBSCRIBER
+  PPV
 }
 
-enum CommissionStatus {
-  PENDING
-  PAID
-  CANCELLED
-}
-
-enum AnalyticsEvent {
-  VIEW_CREATOR
-  CHAT_START
-  UNLOCK_START
-  UNLOCK_SUCCESS
-  TIP_SENT
-  SUBSCRIPTION_START
-  POST_VIEW
-  POST_UNLOCK
-  REFERRAL_SIGNUP
+enum KycProvider {
+  STRIPE_IDENTITY
+  MANUAL
 }
