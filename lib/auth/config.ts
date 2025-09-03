@@ -80,10 +80,6 @@ export const authOptions: NextAuthOptions = {
       return true
     },
   },
-  session: {
-    strategy: prisma ? 'database' : 'jwt',
-  },
-  secret: process.env.NEXTAUTH_SECRET || 'demo-secret-for-development',
   pages: {
     signIn: '/auth/signin',
     signOut: '/auth/signout',
