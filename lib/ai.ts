@@ -1,9 +1,17 @@
 import OpenAI from 'openai'
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+// Initialize OpenAI client conditionally
+let openai: OpenAI | null = null
+
+try {
+  if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+  }
+} catch (error) {
+  console.warn('OpenAI not available during build')
+}
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
@@ -21,8 +29,8 @@ export async function createChatCompletion(
   messages: ChatMessage[],
   options: ChatCompletionOptions = {}
 ) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OpenAI API key not configured')
+  if (!openai) {
+    throw new Error('OpenAI not configured')
   }
 
   const {
@@ -64,8 +72,8 @@ export async function createStreamingChatCompletion(
   messages: ChatMessage[],
   options: ChatCompletionOptions = {}
 ) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OpenAI API key not configured')
+  if (!openai) {
+    throw new Error('OpenAI not configured')
   }
 
   const {
@@ -103,8 +111,8 @@ export async function createStreamingChatCompletion(
 }
 
 export async function moderateContent(text: string) {
-  if (!process.env.OPENAI_API_KEY) {
-    console.warn('OpenAI API key not configured, skipping moderation')
+  if (!openai) {
+    console.warn('OpenAI not configured, skipping moderation')
     return { flagged: false, categories: {} }
   }
 

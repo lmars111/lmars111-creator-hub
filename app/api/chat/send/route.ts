@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/config'
-import { prisma } from '@/lib/prisma'
+
+// For build-time, return early if Prisma isn't available
+let prisma: any = null
+try {
+  const { prisma: prismaClient } = require('@/lib/prisma')
+  prisma = prismaClient
+} catch (error) {
+  console.warn('Prisma not available during build')
+}
+
 import { 
   createStreamingChatCompletion, 
   moderateContent, 
@@ -13,6 +22,12 @@ import { checkRateLimit, validateAIRequest, recordAIUsage } from '@/lib/ai-guard
 
 export async function POST(request: NextRequest) {
   try {
+    if (!prisma) {
+      return NextResponse.json({ 
+        error: 'Service temporarily unavailable' 
+      }, { status: 503 })
+    }
+
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.id) {

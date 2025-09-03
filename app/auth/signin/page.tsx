@@ -52,7 +52,7 @@ export default function SignIn() {
           <CardHeader className="text-center">
             <CardTitle>Check your email</CardTitle>
             <CardDescription>
-              We've sent a sign in link to {email}
+              We&apos;ve sent a sign in link to {email}
             </CardDescription>
           </CardHeader>
           <CardContent>

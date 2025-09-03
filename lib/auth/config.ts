@@ -2,10 +2,18 @@ import { NextAuthOptions } from 'next-auth'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import EmailProvider from 'next-auth/providers/email'
 import GoogleProvider from 'next-auth/providers/google'
-import { prisma } from '@/lib/prisma'
+
+// For build-time, return early if Prisma isn't available
+let prisma: any = null
+try {
+  const { prisma: prismaClient } = require('@/lib/prisma')
+  prisma = prismaClient
+} catch (error) {
+  console.warn('Prisma not available during build')
+}
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  ...(prisma && { adapter: PrismaAdapter(prisma) }),
   providers: [
     EmailProvider({
       server: {
@@ -25,7 +33,7 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async session({ session, user }) {
-      if (session.user) {
+      if (session.user && prisma) {
         // Get user from database to include role and other info
         const dbUser = await prisma.user.findUnique({
           where: { email: session.user.email! },
@@ -43,7 +51,7 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async signIn({ user, account, profile }) {
-      if (account?.provider === 'google') {
+      if (account?.provider === 'google' && prisma) {
         // Handle Google OAuth sign in
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email! },
